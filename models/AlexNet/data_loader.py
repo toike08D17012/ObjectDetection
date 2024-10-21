@@ -9,27 +9,28 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from models.AlexNet.transforms import (ImageTransformObjectDetection,
+                                       ImageTransformRecognision)
 from utils.dataset import OriginalDataset
-from utils.transforms import ImageTransfrom
 
-DEFAULT_DATASET_SAVE_DIR = Path('D:/workspace/ObjectDetection/dataset/CIFAR-10')
+DEFAULT_DATASET_SAVE_DIR = Path('../../dataset')
 CIFAR10_LABELS = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
-DEFAULT_ILSVRC_DIR = Path('D:/workspace/ObjectDetection/dataset/ILSVRC/')
+DEFAULT_ILSVRC_DIR = Path('../../ILSVRC/')
 
 IMAGE_SIZE = 224
-IMAGE_NET_MEAN = (103.6660007 , 116.34035908, 122.08825076)
-IMAGE_NET_STD = (0.95279436, 0.87966153, 0.9571214)
+# After Normalization, BGR
+IMAGE_NET_MEAN = (0.406, 0.456, 0.485)
+IMAGE_NET_STD = (0.225, 0.224, 0.229)
 
 
 def create_dataset_CIFAR10(dataset_save_dir=DEFAULT_DATASET_SAVE_DIR, download=True, batch_size=256, num_workers=2):
-    transform = transforms.Compose(
-        [
+    transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ]
-    )
-    # transform = transforms.ToTensor()
+            transforms.Normalize(mean=IMAGE_NET_MEAN, std=IMAGE_NET_STD),
+        ])
 
     train_dataset = torchvision.datasets.CIFAR10(root=dataset_save_dir, train=True, download=download, transform=transform)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
@@ -38,6 +39,18 @@ def create_dataset_CIFAR10(dataset_save_dir=DEFAULT_DATASET_SAVE_DIR, download=T
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
     return train_loader, test_loader, CIFAR10_LABELS
+
+
+def create_dataset_PascalVOC(dataset_save_dir=DEFAULT_DATASET_SAVE_DIR, download=True, batch_size=256, num_workers=2):
+    transform = ImageTransformObjectDetection(size=IMAGE_SIZE, mean=IMAGE_NET_MEAN, std=IMAGE_NET_STD)
+
+    train_dataset = torchvision.datasets.VOCDetection(root=dataset_save_dir, year='2007', image_set='train', download=download, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+
+    test_dataset = torchvision.datasets.VOCDetection(root=dataset_save_dir, year='2007', image_set='val', download=download, transform=transform)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+
+    return train_loader, test_loader
 
 
 def create_dataset_ILSVRC(data_dir=DEFAULT_ILSVRC_DIR, batch_size=256, num_workers=2, pin_memory=True, pre_download_annotation=True, pre_download_image=False):
@@ -62,12 +75,11 @@ class ILSVRC(OriginalDataset):
             image_std=IMAGE_NET_STD,
             pre_download_annotation=False,
             pre_download_image=False
-        ) -> None:
+    ) -> None:
         """
         Args:
             data_dir[Path]: datasetへのパス
             mode[str]: train, validation or test
-                       
         """
         print(f'{mode} loader')
         super().__init__()
@@ -76,7 +88,7 @@ class ILSVRC(OriginalDataset):
             mode = 'val'
 
         if transform is None:
-            self.transform = ImageTransfrom(size=image_size, mean=image_mean, std=image_std, mode=mode)
+            self.transform = ImageTransformRecognision(size=image_size, mean=image_mean, std=image_std, mode=mode)
         else:
             self.transform = transform
 
@@ -98,7 +110,7 @@ class ILSVRC(OriginalDataset):
 
     def __len__(self):
         return len(self.annotation_paths)
-    
+
     def _get_annotations(self):
         self.annotation_list = []
         for annotation_path in tqdm(self.annotation_paths, desc='Getting annotations'):
@@ -130,5 +142,5 @@ class ILSVRC(OriginalDataset):
             elif self.image_suffix == '.jpg':
                 image = torch.tensor(cv2.imread(image_path).transpose(2, 0, 1), dtype=torch.float32)
         transformed_image = self.transform(image)
-        
+
         return transformed_image, annotation

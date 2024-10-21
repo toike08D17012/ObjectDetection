@@ -8,6 +8,7 @@ from utils.trainer import Trainer
 TRAIN_EPOCH = 250
 BATCH_SIZE = 512
 
+
 def train():
     model = AlexNet(num_classes=1000)
 

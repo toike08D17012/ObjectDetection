@@ -1,18 +1,32 @@
-from logging import getLogger, StreamHandler, Formatter,INFO, DEBUG
+from logging import INFO, Formatter, StreamHandler, getLogger
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 
+from utils.utils import get_device
+
 DEFAULT_LOG_DIR = Path('./logs')
 
+
 class Trainer():
-    def __init__(self, model_name:str, model: torch.nn.Module, resume=False, checkpoint_path=None, log_dir=None, visualize_interval=1, save_model_interval=1, logger=None) -> None:
+    def __init__(
+            self,
+            model_name: str,
+            model: torch.nn.Module,
+            resume=False,
+            checkpoint_path=None,
+            log_dir=None,
+            visualize_interval=1,
+            save_model_interval=1,
+            logger=None,
+            log_level=INFO
+    ) -> None:
         self.model_name = model_name
-        
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        
+
+        self.device = get_device()
+
         self.model = model.to(device=self.device)
 
         assert not resume or checkpoint_path is not None, 'If resume is True, must be set checkpoint path'
@@ -22,6 +36,10 @@ class Trainer():
 
         if log_dir is None:
             log_dir = DEFAULT_LOG_DIR / model_name
+            index = 1
+            while log_dir.exists():
+                log_dir = DEFAULT_LOG_DIR / f'{model_name}_{index}'
+                index += 1
         self.log_dir = log_dir
         self.log_dir.mkdir(exist_ok=True, parents=True)
 
@@ -35,8 +53,7 @@ class Trainer():
 
         if logger is None:
             logger = getLogger(__name__)
-            logger.setLevel(INFO)
-            # logger.setLevel(DEBUG)
+            logger.setLevel(log_level)
             if not logger.hasHandlers():
                 handler = StreamHandler()
                 formatter = Formatter('[%(asctime)s] %(levelname)s : %(message)s')
@@ -50,13 +67,13 @@ class Trainer():
         self.validation_acc_list = []
 
     def train_model(
-            self,
-            train_epoch: int,
-            optimizer: torch.optim.Optimizer,
-            criterion,
-            train_loader,
-            validation_loader
-        ):
+        self,
+        train_epoch: int,
+        optimizer: torch.optim.Optimizer,
+        criterion,
+        train_loader,
+        validation_loader
+    ):
         train_data_num = len(train_loader.dataset)
         validation_data_num = len(validation_loader.dataset)
 
@@ -123,7 +140,7 @@ class Trainer():
             if epoch % self.visualize_interval == 0:
                 save_result_path = self.visualized_result_dir / f'{epoch}.jpg'
                 self._visualize(save_result_path)
-        
+
         torch.save(self.model.state_dict(), self.checkpoint_dir / f'{self.model_name}.pth')
 
     def _visualize(self, save_result_path):
@@ -131,7 +148,7 @@ class Trainer():
         左にloss, 右にaccuracyを可視化
         """
         fig, axes = plt.subplots(1, 2, figsize=(16, 9))
-        
+
         # 左にlossを描画
         ax = axes[0]
         ax.plot(self.train_loss_list, label='train loss')

@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import torch
-from torch.utils.data import Dataset
 import torchvision
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
 
 
 class OriginalDataset(Dataset):
@@ -20,7 +20,7 @@ class OriginalDataset(Dataset):
             ...[list[Path]]: 画像のパスのリスト
         """
         return self._get_paths(data_dir=data_dir, suffix=suffix)
-    
+
     def _get_annotation_paths(self, data_dir: Path, suffix: str = '.jpg') -> list[Path]:
         """
         指定した階層より下位のディレクトリ内の全アノテーションデータのパスを取得
@@ -31,7 +31,6 @@ class OriginalDataset(Dataset):
             ...[list[Path]]: アノテーションデータのパスのリスト
         """
         return self._get_paths(data_dir=data_dir, suffix=suffix)
-
 
     @staticmethod
     def _get_paths(data_dir: Path, suffix: str) -> list[Path]:
