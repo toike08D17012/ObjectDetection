@@ -1,0 +1,18 @@
+datasets/*
+!datasets/.gitkeep
+
+docker/.bash_history
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# except notebooks for debug
+object_detection/**/*.ipynb
