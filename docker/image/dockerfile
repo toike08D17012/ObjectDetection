@@ -75,3 +75,5 @@ COPY --chown=${USER_NAME}:${USER_NAME} uv_project/pyproject.toml uv_project/uv.l
 RUN uv python install ${PYTHON_VERSION} \
     && uv venv --python ${PYTHON_VERSION} ${UV_PROJECT_ENVIRONMENT} \
     && uv sync
+
+ENV PYTHONPATH=${WORK_DIR}
