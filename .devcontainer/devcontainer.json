@@ -1,0 +1,37 @@
+{
+  "name": "object-detection-practice",
+  "dockerComposeFile": [
+    "../docker/docker-compose.yml"
+  ],
+  "service": "object_detection",
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "TZ": "Asia/Tokyo",
+    "USER_NAME": "${localEnv:USER}",
+    "GROUP_NAME": "${localEnv:USER}"
+  },
+  "remoteUser": "${localEnv:USER}",
+  "updateRemoteUserUID": true,
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/${localEnv:USER}/workspace/object_detection,type=bind,consistency=cached",
+  "workspaceFolder": "/home/${localEnv:USER}/workspace/object_detection",
+  "runArgs": [
+    "--gpus=all"
+  ],
+  "containerEnv": {
+    "NVIDIA_DRIVER_CAPABILITIES": "all",
+    "TZ": "Asia/Tokyo"
+  },
+  "postCreateCommand": "uv sync",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "charliermarsh.ruff"
+      ]
+    },
+    "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python"
+    }
+  }
+}

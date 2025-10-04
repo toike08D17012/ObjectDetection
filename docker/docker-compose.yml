@@ -1,0 +1,35 @@
+services:
+  object_detection:
+    image: object_detection_practice
+    build:
+      context: .
+      dockerfile: image/dockerfile
+      args:
+        USER_NAME: ${USER}
+        GROUP_NAME: ${USER}
+    container_name: object_detection
+    tty: true
+    command: ["bash"]
+    network_mode: host
+    shm_size: "32g"
+    working_dir: /home/${USER}/workspace/object_detection
+    environment:
+      DISPLAY: ${DISPLAY}
+      NVIDIA_DRIVER_CAPABILITIES: all
+      USER: ${USER}
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    volumes:
+      - ../:/home/${USER}/workspace/object_detection
+      - /tmp/.x11-unix:/tmp/.x11-unix
+      - ${HOME}/.Xauthority:/home/${USER}/.Xauthority
+      - .bash_history:/home/${USER}/.bash_history
+      - ${HOME}/.netrc:/home/${USER}/.netrc
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

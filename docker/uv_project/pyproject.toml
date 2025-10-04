@@ -1,0 +1,24 @@
+[project]
+name = "uv-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "datasets>=4.1.1",
+    "opencv-python>=4.12.0.88",
+    "pyyaml>=6.0.2",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "ultralytics>=8.3.202",
+    "wandb>=0.22.0",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "ruff>=0.7.1",
+]
+
+[tool.uv]
+default-groups = ["dev"]

@@ -1,0 +1,77 @@
+FROM nvidia/cuda:12.9.1-cudnn-devel-ubuntu24.04
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    sudo \
+    locales \
+    build-essential \
+    tzdata \
+    clang \
+    curl \
+    wget \
+    git \
+    unzip \
+    cmake \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV TZ=Asia/Tokyo
+
+ARG WORKSPACE=/WORKSPACE
+
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG USER_NAME=developer
+ARG GROUP_NAME=developer
+
+ENV HOME=/home/${USER_NAME}
+ENV WORK_DIR=${HOME}/workspace/object_detection
+
+RUN set -eux; \
+    if getent group "${USER_GID}" >/dev/null; then \
+        EXISTING_GROUP="$(getent group "${USER_GID}" | cut -d: -f1)"; \
+        if [ "${EXISTING_GROUP}" != "${GROUP_NAME}" ]; then \
+            groupmod -n "${GROUP_NAME}" "${EXISTING_GROUP}"; \
+        fi; \
+    else \
+        groupadd --gid "${USER_GID}" "${GROUP_NAME}"; \
+    fi; \
+    if getent passwd "${USER_UID}" >/dev/null; then \
+        EXISTING_USER="$(getent passwd "${USER_UID}" | cut -d: -f1)"; \
+        if [ "${EXISTING_USER}" != "${USER_NAME}" ]; then \
+            usermod -l "${USER_NAME}" "${EXISTING_USER}"; \
+        fi; \
+        usermod -d "/home/${USER_NAME}" -m "${USER_NAME}"; \
+    else \
+        useradd -m --no-log-init --uid "${USER_UID}" --gid "${USER_GID}" \
+            --groups sudo --base-dir /home --shell /bin/bash "${USER_NAME}"; \
+    fi; \
+    touch "${HOME}/.sudo_as_admin_successful" && \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
+    echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
+RUN mkdir -p ${WORKSPACE} \
+    && mkdir -p ${WORK_DIR} \
+    && chown -R ${USER_UID}:${USER_GID} ${WORKSPACE} \
+    && chown -R ${USER_UID}:${USER_GID} /home
+
+USER ${USER_NAME}
+ENV PYTHON_VERSION=3.13
+ENV UV_PROJECT=${WORK_DIR}/docker/uv_project
+ENV UV_PROJECT_ENVIRONMENT=${HOME}/.venv
+ENV PATH="${UV_PROJECT_ENVIRONMENT}/bin:${PATH}:/root/.cargo/bin:${HOME}/.local/bin:${PATH}"
+
+RUN echo 'eval "$(uv generate-shell-completion bash)"' >> ${HOME}/.bashrc
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+COPY --chown=${USER_NAME}:${USER_NAME} uv_project/pyproject.toml uv_project/uv.lock ${UV_PROJECT}/
+
+# 仮想環境作成（指定バージョンを使用）
+RUN uv python install ${PYTHON_VERSION} \
+    && uv venv --python ${PYTHON_VERSION} ${UV_PROJECT_ENVIRONMENT} \
+    && uv sync
